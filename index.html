@@ -1,139 +1,193 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>2D Graph Visualizer</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Mini Desmos Clone</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
 
 <style>
-    body {
-        margin: 0;
-        background: #111;
-        color: white;
-        font-family: Arial, sans-serif;
-        overflow: hidden;
-    }
-
-    #ui {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        z-index: 10;
-        background: rgba(0,0,0,0.7);
-        padding: 10px;
-        border-radius: 10px;
-    }
-
-    input {
-        width: 300px;
-        padding: 8px;
-        font-size: 16px;
-        border: none;
-        border-radius: 5px;
-        outline: none;
-    }
-
-    button {
-        padding: 8px 12px;
-        margin-left: 5px;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-    }
-
-    canvas {
-        display: block;
-    }
-</style>
-</head>
-<body>
-
-<div id="ui">
-    <input id="equation" value="Math.sin(x)">
-    <button onclick="draw()">Draw</button>
-</div>
-
-<canvas id="canvas"></canvas>
-
-<script>
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
-
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-
-let scale = 50;
-let offsetX = canvas.width / 2;
-let offsetY = canvas.height / 2;
-
-function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    draw();
+body {
+    margin: 0;
+    font-family: system-ui, Arial;
+    background: #0f1117;
+    color: white;
+    overflow: hidden;
 }
 
+#topbar {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 10;
+    background: rgba(20,20,30,0.85);
+    padding: 12px;
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    width: 320px;
+}
+
+input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    outline: none;
+    margin-bottom: 8px;
+    background: #1c1f2a;
+    color: white;
+    font-size: 14px;
+}
+
+button {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    background: #4c7dff;
+    color: white;
+    font-weight: bold;
+}
+
+#list {
+    margin-top: 10px;
+}
+
+.func {
+    background: #1c1f2a;
+    padding: 6px;
+    margin-top: 5px;
+    border-radius: 6px;
+    font-size: 13px;
+}
+
+canvas {
+    display: block;
+}
+</style>
+</head>
+
+<body>
+
+<div id="topbar">
+    <input id="expr" placeholder="e.g. sin(x), x^2, x+sin(x)" />
+    <button onclick="addFunc()">Add Function</button>
+    <div id="list"></div>
+</div>
+
+<canvas id="c"></canvas>
+
+<script>
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d");
+
+let W, H;
+function resize(){
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+}
 window.addEventListener("resize", resize);
+resize();
 
-function drawGrid() {
+// View state
+let scale = 60;
+let offsetX = W/2;
+let offsetY = H/2;
 
-    ctx.strokeStyle = "#222";
+// Functions list
+let functions = [];
+
+function addFunc(){
+    const text = document.getElementById("expr").value;
+    if(!text) return;
+
+    try {
+        const compiled = math.compile(text);
+        functions.push({ text, compiled });
+        renderList();
+        draw();
+    } catch(e){
+        alert("Invalid expression");
+    }
+}
+
+function renderList(){
+    const list = document.getElementById("list");
+    list.innerHTML = "";
+
+    functions.forEach((f, i) => {
+        const div = document.createElement("div");
+        div.className = "func";
+        div.textContent = f.text;
+
+        div.onclick = () => {
+            functions.splice(i,1);
+            renderList();
+            draw();
+        };
+
+        list.appendChild(div);
+    });
+}
+
+// Grid
+function grid(){
+    ctx.strokeStyle = "#1c2230";
     ctx.lineWidth = 1;
 
-    for(let x = offsetX % scale; x < canvas.width; x += scale) {
+    for(let x = offsetX % scale; x < W; x += scale){
         ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, canvas.height);
+        ctx.moveTo(x,0);
+        ctx.lineTo(x,H);
         ctx.stroke();
     }
 
-    for(let y = offsetY % scale; y < canvas.height; y += scale) {
+    for(let y = offsetY % scale; y < H; y += scale){
         ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(canvas.width, y);
+        ctx.moveTo(0,y);
+        ctx.lineTo(W,y);
         ctx.stroke();
     }
 
-    // Axes
-    ctx.strokeStyle = "white";
+    // axes
+    ctx.strokeStyle = "#555";
     ctx.lineWidth = 2;
 
     ctx.beginPath();
     ctx.moveTo(0, offsetY);
-    ctx.lineTo(canvas.width, offsetY);
+    ctx.lineTo(W, offsetY);
     ctx.stroke();
 
     ctx.beginPath();
     ctx.moveTo(offsetX, 0);
-    ctx.lineTo(offsetX, canvas.height);
+    ctx.lineTo(offsetX, H);
     ctx.stroke();
 }
 
-function drawGraph() {
-
-    const equation = document.getElementById("equation").value;
-
-    ctx.strokeStyle = "lime";
+// Graph
+function plot(f, color){
+    ctx.strokeStyle = color;
     ctx.lineWidth = 2;
-
     ctx.beginPath();
 
     let first = true;
 
-    for(let px = 0; px < canvas.width; px++) {
+    for(let px = 0; px < W; px++){
 
         let x = (px - offsetX) / scale;
-
         let y;
 
         try {
-            y = eval(equation);
+            y = f.compiled.evaluate({ x });
         } catch {
-            return;
+            continue;
         }
 
         let py = offsetY - y * scale;
 
-        if(first) {
+        if(first){
             ctx.moveTo(px, py);
             first = false;
         } else {
@@ -144,55 +198,48 @@ function drawGraph() {
     ctx.stroke();
 }
 
-function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+// Main draw
+function draw(){
+    ctx.clearRect(0,0,W,H);
 
-    drawGrid();
-    drawGraph();
+    grid();
+
+    const colors = ["#4c7dff","#ff4c7d","#4cff9a","#ffb84c","#c44cff"];
+
+    functions.forEach((f,i)=>{
+        plot(f, colors[i % colors.length]);
+    });
 }
 
 draw();
 
-
 // Zoom
-canvas.addEventListener("wheel", (e) => {
-
+canvas.addEventListener("wheel", (e)=>{
     e.preventDefault();
-
-    if(e.deltaY < 0) {
-        scale *= 1.1;
-    } else {
-        scale /= 1.1;
-    }
-
+    scale *= e.deltaY < 0 ? 1.1 : 0.9;
     draw();
 });
 
-
-// Dragging
+// Pan
 let dragging = false;
-let lastX = 0;
-let lastY = 0;
+let lx, ly;
 
-canvas.addEventListener("mousedown", (e) => {
+canvas.addEventListener("mousedown",(e)=>{
     dragging = true;
-    lastX = e.clientX;
-    lastY = e.clientY;
+    lx = e.clientX;
+    ly = e.clientY;
 });
 
-canvas.addEventListener("mouseup", () => {
-    dragging = false;
-});
+canvas.addEventListener("mouseup",()=>dragging=false);
 
-canvas.addEventListener("mousemove", (e) => {
-
+canvas.addEventListener("mousemove",(e)=>{
     if(!dragging) return;
 
-    offsetX += e.clientX - lastX;
-    offsetY += e.clientY - lastY;
+    offsetX += e.clientX - lx;
+    offsetY += e.clientY - ly;
 
-    lastX = e.clientX;
-    lastY = e.clientY;
+    lx = e.clientX;
+    ly = e.clientY;
 
     draw();
 });
