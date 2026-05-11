@@ -158,16 +158,45 @@ let graphs = [];
 const colors = ["#4c7dff","#ff4c7d","#4cff9a","#ffb84c","#c44cff"];
 
 function add(){
-    const val = document.getElementById("expr").value;
-    if(!val) return;
+    let input = document.getElementById("expr").value.trim();
+    if(!input) return;
 
     try {
-        graphs.push({
-            expr: val,
-            compiled: math.compile(val),
-            visible: true,
-            color: colors[graphs.length % colors.length]
-        });
+
+        // -------------------------
+        // PARAMETRIC DETECTION
+        // -------------------------
+        if(input.includes("t") && input.includes(",")) {
+
+            let parts = input.split(",");
+
+            let xPart = parts.find(p => p.includes("x"))?.split("=")[1];
+            let yPart = parts.find(p => p.includes("y"))?.split("=")[1];
+
+            graphs.push({
+                type: "parametric",
+                xExpr: math.compile(xPart),
+                yExpr: math.compile(yPart),
+                text: input,
+                visible: true,
+                color: colors[graphs.length % colors.length]
+            });
+
+        } else {
+
+            // -------------------------
+            // FUNCTION MODE (y = f(x))
+            // -------------------------
+            let expr = input.replace("y=", "").trim();
+
+            graphs.push({
+                type: "function",
+                expr: math.compile(expr),
+                text: input,
+                visible: true,
+                color: colors[graphs.length % colors.length]
+            });
+        }
 
         document.getElementById("expr").value = "";
         renderList();
