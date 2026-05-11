@@ -3,67 +3,114 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Mini Desmos Clone</title>
+<title>Graphing Studio</title>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
 
 <style>
+:root {
+    --bg: #0b0d12;
+    --panel: #111522;
+    --panel2: #151a2a;
+    --text: #e6e6e6;
+    --muted: #8a8f98;
+    --accent: #4c7dff;
+}
+
 body {
     margin: 0;
-    font-family: system-ui, Arial;
-    background: #0f1117;
-    color: white;
+    font-family: system-ui;
+    background: var(--bg);
+    color: var(--text);
     overflow: hidden;
 }
 
-#topbar {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    z-index: 10;
-    background: rgba(20,20,30,0.85);
-    padding: 12px;
-    border-radius: 12px;
-    backdrop-filter: blur(10px);
+#layout {
+    display: flex;
+    height: 100vh;
+}
+
+/* Sidebar */
+#sidebar {
     width: 320px;
+    background: var(--panel);
+    display: flex;
+    flex-direction: column;
+    padding: 12px;
+    box-sizing: border-box;
+    border-right: 1px solid #222;
+}
+
+#title {
+    font-size: 18px;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+#inputRow {
+    display: flex;
+    gap: 6px;
 }
 
 input {
-    width: 100%;
+    flex: 1;
     padding: 10px;
     border-radius: 8px;
     border: none;
-    outline: none;
-    margin-bottom: 8px;
-    background: #1c1f2a;
+    background: var(--panel2);
     color: white;
-    font-size: 14px;
+    outline: none;
 }
 
 button {
-    width: 100%;
     padding: 10px;
     border-radius: 8px;
     border: none;
-    cursor: pointer;
-    background: #4c7dff;
+    background: var(--accent);
     color: white;
+    cursor: pointer;
     font-weight: bold;
 }
 
 #list {
-    margin-top: 10px;
+    margin-top: 12px;
+    overflow-y: auto;
 }
 
-.func {
-    background: #1c1f2a;
-    padding: 6px;
-    margin-top: 5px;
-    border-radius: 6px;
-    font-size: 13px;
+.item {
+    background: var(--panel2);
+    padding: 10px;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
-canvas {
+.left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.expr {
+    font-size: 14px;
+}
+
+.color {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+}
+
+.small {
+    font-size: 12px;
+    color: var(--muted);
+}
+
+/* Canvas */
+#canvas {
+    flex: 1;
     display: block;
 }
 </style>
@@ -71,13 +118,22 @@ canvas {
 
 <body>
 
-<div id="topbar">
-    <input id="expr" placeholder="e.g. sin(x), x^2, x+sin(x)" />
-    <button onclick="addFunc()">Add Function</button>
-    <div id="list"></div>
-</div>
+<div id="layout">
 
-<canvas id="c"></canvas>
+    <div id="sidebar">
+        <div id="title">Graphing Studio</div>
+
+        <div id="inputRow">
+            <input id="expr" placeholder="e.g. sin(x), x^2, x+sin(x)" />
+            <button onclick="add()">+</button>
+        </div>
+
+        <div id="list"></div>
+    </div>
+
+    <canvas id="c"></canvas>
+
+</div>
 
 <script>
 const canvas = document.getElementById("c");
@@ -85,56 +141,94 @@ const ctx = canvas.getContext("2d");
 
 let W, H;
 function resize(){
-    W = canvas.width = window.innerWidth;
+    W = canvas.width = window.innerWidth - 320;
     H = canvas.height = window.innerHeight;
 }
 window.addEventListener("resize", resize);
 resize();
 
-// View state
+// View
 let scale = 60;
 let offsetX = W/2;
 let offsetY = H/2;
 
-// Functions list
-let functions = [];
+// Graph list
+let graphs = [];
 
-function addFunc(){
-    const text = document.getElementById("expr").value;
-    if(!text) return;
+const colors = ["#4c7dff","#ff4c7d","#4cff9a","#ffb84c","#c44cff"];
+
+function add(){
+    const val = document.getElementById("expr").value;
+    if(!val) return;
 
     try {
-        const compiled = math.compile(text);
-        functions.push({ text, compiled });
+        graphs.push({
+            expr: val,
+            compiled: math.compile(val),
+            visible: true,
+            color: colors[graphs.length % colors.length]
+        });
+
+        document.getElementById("expr").value = "";
         renderList();
         draw();
+
     } catch(e){
         alert("Invalid expression");
     }
 }
 
+// Sidebar UI
 function renderList(){
     const list = document.getElementById("list");
     list.innerHTML = "";
 
-    functions.forEach((f, i) => {
-        const div = document.createElement("div");
-        div.className = "func";
-        div.textContent = f.text;
+    graphs.forEach((g, i)=>{
 
-        div.onclick = () => {
-            functions.splice(i,1);
+        const item = document.createElement("div");
+        item.className = "item";
+
+        const left = document.createElement("div");
+        left.className = "left";
+
+        const expr = document.createElement("div");
+        expr.className = "expr";
+        expr.textContent = g.expr;
+
+        const small = document.createElement("div");
+        small.className = "small";
+        small.textContent = "click to toggle";
+
+        left.appendChild(expr);
+        left.appendChild(small);
+
+        const color = document.createElement("div");
+        color.className = "color";
+        color.style.background = g.color;
+
+        item.appendChild(left);
+        item.appendChild(color);
+
+        item.onclick = ()=>{
+            g.visible = !g.visible;
+            item.style.opacity = g.visible ? 1 : 0.4;
+            draw();
+        };
+
+        item.oncontextmenu = (e)=>{
+            e.preventDefault();
+            graphs.splice(i,1);
             renderList();
             draw();
         };
 
-        list.appendChild(div);
+        list.appendChild(item);
     });
 }
 
 // Grid
 function grid(){
-    ctx.strokeStyle = "#1c2230";
+    ctx.strokeStyle = "#1a2030";
     ctx.lineWidth = 1;
 
     for(let x = offsetX % scale; x < W; x += scale){
@@ -152,23 +246,23 @@ function grid(){
     }
 
     // axes
-    ctx.strokeStyle = "#555";
+    ctx.strokeStyle = "#444";
     ctx.lineWidth = 2;
 
     ctx.beginPath();
-    ctx.moveTo(0, offsetY);
-    ctx.lineTo(W, offsetY);
+    ctx.moveTo(0,offsetY);
+    ctx.lineTo(W,offsetY);
     ctx.stroke();
 
     ctx.beginPath();
-    ctx.moveTo(offsetX, 0);
-    ctx.lineTo(offsetX, H);
+    ctx.moveTo(offsetX,0);
+    ctx.lineTo(offsetX,H);
     ctx.stroke();
 }
 
-// Graph
-function plot(f, color){
-    ctx.strokeStyle = color;
+// Plot
+function plot(g){
+    ctx.strokeStyle = g.color;
     ctx.lineWidth = 2;
     ctx.beginPath();
 
@@ -180,7 +274,7 @@ function plot(f, color){
         let y;
 
         try {
-            y = f.compiled.evaluate({ x });
+            y = g.compiled.evaluate({ x });
         } catch {
             continue;
         }
@@ -198,42 +292,40 @@ function plot(f, color){
     ctx.stroke();
 }
 
-// Main draw
+// Draw
 function draw(){
     ctx.clearRect(0,0,W,H);
 
     grid();
 
-    const colors = ["#4c7dff","#ff4c7d","#4cff9a","#ffb84c","#c44cff"];
-
-    functions.forEach((f,i)=>{
-        plot(f, colors[i % colors.length]);
+    graphs.forEach(g=>{
+        if(g.visible) plot(g);
     });
 }
 
 draw();
 
 // Zoom
-canvas.addEventListener("wheel", (e)=>{
+canvas.addEventListener("wheel",(e)=>{
     e.preventDefault();
     scale *= e.deltaY < 0 ? 1.1 : 0.9;
     draw();
 });
 
 // Pan
-let dragging = false;
+let drag = false;
 let lx, ly;
 
 canvas.addEventListener("mousedown",(e)=>{
-    dragging = true;
+    drag = true;
     lx = e.clientX;
     ly = e.clientY;
 });
 
-canvas.addEventListener("mouseup",()=>dragging=false);
+canvas.addEventListener("mouseup",()=>drag=false);
 
 canvas.addEventListener("mousemove",(e)=>{
-    if(!dragging) return;
+    if(!drag) return;
 
     offsetX += e.clientX - lx;
     offsetY += e.clientY - ly;
