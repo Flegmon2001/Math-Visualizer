@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2D Graph Visualizer</title>
+
+<style>
+    body {
+        margin: 0;
+        background: #111;
+        color: white;
+        font-family: Arial, sans-serif;
+        overflow: hidden;
+    }
+
+    #ui {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 10;
+        background: rgba(0,0,0,0.7);
+        padding: 10px;
+        border-radius: 10px;
+    }
+
+    input {
+        width: 300px;
+        padding: 8px;
+        font-size: 16px;
+        border: none;
+        border-radius: 5px;
+        outline: none;
+    }
+
+    button {
+        padding: 8px 12px;
+        margin-left: 5px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    canvas {
+        display: block;
+    }
+</style>
+</head>
+<body>
+
+<div id="ui">
+    <input id="equation" value="Math.sin(x)">
+    <button onclick="draw()">Draw</button>
+</div>
+
+<canvas id="canvas"></canvas>
+
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let scale = 50;
+let offsetX = canvas.width / 2;
+let offsetY = canvas.height / 2;
+
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    draw();
+}
+
+window.addEventListener("resize", resize);
+
+function drawGrid() {
+
+    ctx.strokeStyle = "#222";
+    ctx.lineWidth = 1;
+
+    for(let x = offsetX % scale; x < canvas.width; x += scale) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+    }
+
+    for(let y = offsetY % scale; y < canvas.height; y += scale) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+    }
+
+    // Axes
+    ctx.strokeStyle = "white";
+    ctx.lineWidth = 2;
+
+    ctx.beginPath();
+    ctx.moveTo(0, offsetY);
+    ctx.lineTo(canvas.width, offsetY);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(offsetX, 0);
+    ctx.lineTo(offsetX, canvas.height);
+    ctx.stroke();
+}
+
+function drawGraph() {
+
+    const equation = document.getElementById("equation").value;
+
+    ctx.strokeStyle = "lime";
+    ctx.lineWidth = 2;
+
+    ctx.beginPath();
+
+    let first = true;
+
+    for(let px = 0; px < canvas.width; px++) {
+
+        let x = (px - offsetX) / scale;
+
+        let y;
+
+        try {
+            y = eval(equation);
+        } catch {
+            return;
+        }
+
+        let py = offsetY - y * scale;
+
+        if(first) {
+            ctx.moveTo(px, py);
+            first = false;
+        } else {
+            ctx.lineTo(px, py);
+        }
+    }
+
+    ctx.stroke();
+}
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    drawGrid();
+    drawGraph();
+}
+
+draw();
+
+
+// Zoom
+canvas.addEventListener("wheel", (e) => {
+
+    e.preventDefault();
+
+    if(e.deltaY < 0) {
+        scale *= 1.1;
+    } else {
+        scale /= 1.1;
+    }
+
+    draw();
+});
+
+
+// Dragging
+let dragging = false;
+let lastX = 0;
+let lastY = 0;
+
+canvas.addEventListener("mousedown", (e) => {
+    dragging = true;
+    lastX = e.clientX;
+    lastY = e.clientY;
+});
+
+canvas.addEventListener("mouseup", () => {
+    dragging = false;
+});
+
+canvas.addEventListener("mousemove", (e) => {
+
+    if(!dragging) return;
+
+    offsetX += e.clientX - lastX;
+    offsetY += e.clientY - lastY;
+
+    lastX = e.clientX;
+    lastY = e.clientY;
+
+    draw();
+});
+</script>
+
+</body>
+</html>
