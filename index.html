@@ -1,13 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta charset="UTF-8"/>
+
+<meta
+    name="viewport"
+    content="
+        width=device-width,
+        initial-scale=1.0,
+        maximum-scale=1.0,
+        user-scalable=no
+    "
+/>
+
 <title>Mobile Graphing Studio</title>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
 
 <style>
+
 :root{
     --bg:#0b0d12;
     --panel:#121725;
@@ -31,6 +42,42 @@ html,body{
     font-family:system-ui;
 }
 
+/* ================= WRAP ================= */
+
+#wrap{
+    display:flex;
+    width:100%;
+    height:100%;
+}
+
+/* ================= PANEL ================= */
+
+#panel{
+    width:320px;
+    min-width:320px;
+
+    background:var(--panel);
+
+    border-right:1px solid #222;
+
+    display:flex;
+    flex-direction:column;
+
+    overflow:hidden;
+}
+
+#top{
+    padding:12px;
+}
+
+#title{
+    font-size:22px;
+    font-weight:bold;
+    margin-bottom:12px;
+}
+
+/* ================= NAV ================= */
+
 nav{
     border:none;
     background:var(--accent);
@@ -49,34 +96,8 @@ nav a{
     text-decoration:none;
     display:block;
 }
-    
-#wrap{
-    display:flex;
-    width:100%;
-    height:100%;
-}
 
-/* ================= SIDEBAR ================= */
-
-#panel{
-    width:320px;
-    min-width:320px;
-    background:var(--panel);
-    border-right:1px solid #222;
-    display:flex;
-    flex-direction:column;
-    overflow:hidden;
-}
-
-#top{
-    padding:12px;
-}
-
-#title{
-    font-size:20px;
-    font-weight:bold;
-    margin-bottom:12px;
-}
+/* ================= INPUT ================= */
 
 #inputRow{
     display:flex;
@@ -85,25 +106,40 @@ nav a{
 
 input{
     flex:1;
+
     background:var(--panel2);
+
     color:white;
+
     border:none;
     outline:none;
+
     padding:12px;
+
     border-radius:10px;
+
     font-size:16px;
 }
 
 button{
     border:none;
+
     background:var(--accent);
+
     color:white;
+
     border-radius:10px;
+
     padding:12px 16px;
+
     font-weight:bold;
+
     cursor:pointer;
+
     font-size:16px;
 }
+
+/* ================= LIST ================= */
 
 #list{
     flex:1;
@@ -113,9 +149,13 @@ button{
 
 .item{
     background:var(--panel2);
+
     padding:12px;
+
     border-radius:12px;
+
     margin-bottom:10px;
+
     user-select:none;
 }
 
@@ -143,23 +183,33 @@ canvas{
 
 #togglePanel{
     display:none;
+
     position:absolute;
+
     top:10px;
     left:10px;
+
     z-index:100;
+
     background:rgba(0,0,0,0.6);
+
     backdrop-filter:blur(10px);
 }
 
 @media (max-width:900px){
 
     #panel{
+
         position:absolute;
+
         left:0;
         top:0;
         bottom:0;
+
         z-index:99;
+
         transform:translateX(-100%);
+
         transition:0.25s;
     }
 
@@ -171,55 +221,73 @@ canvas{
         display:block;
     }
 }
+
 </style>
 </head>
 
 <body>
 
-<button id="togglePanel">☰</button>
+<button id="togglePanel">
+    ☰
+</button>
 
 <div id="wrap">
 
-<div id="panel">
+    <div id="panel">
 
-    <div id="top">
+        <div id="top">
 
-        <nav><a href="flegmon2001.github.io/MainFleg-Web/">Fleg-Web</a></nav>
-        
-        <div id="title">
-            Graphing Studio
+            <nav>
+                <a href="https://flegmon2001.github.io/MainFleg-Web/">
+                    Fleg-Web
+                </a>
+            </nav>
+
+            <div id="title">
+                Graphing Studio
+            </div>
+
+            <div id="inputRow">
+
+                <input
+                    id="expr"
+                    placeholder="
+                        sin(x)
+                        OR
+                        x=t*cos(t), y=t*sin(t)
+                    "
+                />
+
+                <button onclick="addGraph()">
+                    +
+                </button>
+
+            </div>
+
         </div>
 
-        <div id="inputRow">
-
-            <input
-                id="expr"
-                placeholder="sin(x) OR x=t*cos(t), y=t*sin(t)"
-            />
-
-            <button onclick="addGraph()">
-                +
-            </button>
-
-        </div>
+        <div id="list"></div>
 
     </div>
 
-    <div id="list"></div>
-
-</div>
-
-<canvas id="c"></canvas>
+    <canvas id="c"></canvas>
 
 </div>
 
 <script>
-const canvas = document.getElementById("c");
-const ctx = canvas.getContext("2d");
 
-const panel = document.getElementById("panel");
+/* ================= CANVAS ================= */
 
-/* ================= MOBILE PANEL ================= */
+const canvas =
+    document.getElementById("c");
+
+const ctx =
+    canvas.getContext("2d");
+
+const panel =
+    document.getElementById("panel");
+
+/* ================= MOBILE MENU ================= */
 
 document
 .getElementById("togglePanel")
@@ -234,13 +302,21 @@ let W,H;
 
 function resize(){
 
-    W = canvas.width = canvas.offsetWidth;
-    H = canvas.height = canvas.offsetHeight;
+    W =
+        canvas.width =
+        canvas.offsetWidth;
+
+    H =
+        canvas.height =
+        canvas.offsetHeight;
 
     draw();
 }
 
-window.addEventListener("resize",resize);
+window.addEventListener(
+    "resize",
+    resize
+);
 
 setTimeout(resize,50);
 
@@ -264,6 +340,7 @@ centerView();
 const graphs = [];
 
 const colors = [
+
     "#4c7dff",
     "#ff4c7d",
     "#4cff9a",
@@ -306,12 +383,18 @@ function parseParametric(input){
 
     if(!xPart || !yPart){
 
-        throw new Error("Bad parametric");
+        throw new Error(
+            "Invalid parametric equation"
+        );
     }
 
     return {
-        xExpr:math.compile(xPart),
-        yExpr:math.compile(yPart)
+
+        xExpr:
+            math.compile(xPart),
+
+        yExpr:
+            math.compile(yPart)
     };
 }
 
@@ -320,7 +403,8 @@ function parseParametric(input){
 function addGraph(){
 
     let raw =
-        document.getElementById("expr")
+        document
+        .getElementById("expr")
         .value
         .trim();
 
@@ -393,6 +477,7 @@ function addGraph(){
         .value = "";
 
         renderList();
+
         draw();
 
     } catch(err){
@@ -403,7 +488,7 @@ function addGraph(){
     }
 }
 
-/* ENTER */
+/* ================= ENTER ================= */
 
 document
 .getElementById("expr")
@@ -456,7 +541,7 @@ function renderList(){
             draw();
         };
 
-        /* DELETE */
+        /* RIGHT CLICK DELETE */
 
         div.oncontextmenu = (e)=>{
 
@@ -469,27 +554,33 @@ function renderList(){
             draw();
         };
 
-        /* LONG PRESS DELETE MOBILE */
+        /* MOBILE HOLD DELETE */
 
         let hold;
 
-        div.addEventListener("touchstart",()=>{
+        div.addEventListener(
+            "touchstart",
+            ()=>{
 
-            hold = setTimeout(()=>{
+                hold = setTimeout(()=>{
 
-                graphs.splice(i,1);
+                    graphs.splice(i,1);
 
-                renderList();
+                    renderList();
 
-                draw();
+                    draw();
 
-            },700);
-        });
+                },700);
+            }
+        );
 
-        div.addEventListener("touchend",()=>{
+        div.addEventListener(
+            "touchend",
+            ()=>{
 
-            clearTimeout(hold);
-        });
+                clearTimeout(hold);
+            }
+        );
 
         list.appendChild(div);
     });
@@ -501,6 +592,8 @@ function drawGrid(){
 
     ctx.strokeStyle = "#1a2030";
     ctx.lineWidth = 1;
+
+    /* VERTICAL */
 
     for(
         let x = offsetX % scale;
@@ -515,6 +608,8 @@ function drawGrid(){
 
         ctx.stroke();
     }
+
+    /* HORIZONTAL */
 
     for(
         let y = offsetY % scale;
@@ -573,8 +668,9 @@ function drawFunction(g){
             y =
                 g.expr.evaluate({x});
 
-            if(!isFinite(y))
+            if(!isFinite(y)){
                 continue;
+            }
 
         } catch{
 
@@ -610,7 +706,11 @@ function drawParametric(g){
 
     let first = true;
 
-    for(let t=-100; t<=100; t+=0.02){
+    for(
+        let t=-100;
+        t<=100;
+        t+=0.02
+    ){
 
         let x,y;
 
@@ -655,7 +755,7 @@ function drawParametric(g){
     ctx.stroke();
 }
 
-/* ================= DRAW ================= */
+/* ================= MAIN DRAW ================= */
 
 function draw(){
 
@@ -684,65 +784,85 @@ let dragging = false;
 let lastX = 0;
 let lastY = 0;
 
-canvas.addEventListener("mousedown",(e)=>{
+canvas.addEventListener(
+    "mousedown",
+    (e)=>{
 
-    dragging = true;
+        dragging = true;
 
-    lastX = e.clientX;
-    lastY = e.clientY;
-});
+        lastX = e.clientX;
+        lastY = e.clientY;
+    }
+);
 
-window.addEventListener("mouseup",()=>{
+window.addEventListener(
+    "mouseup",
+    ()=>{
 
-    dragging = false;
-});
+        dragging = false;
+    }
+);
 
-window.addEventListener("mousemove",(e)=>{
+window.addEventListener(
+    "mousemove",
+    (e)=>{
 
-    if(!dragging) return;
+        if(!dragging) return;
 
-    offsetX += e.clientX - lastX;
-    offsetY += e.clientY - lastY;
+        offsetX +=
+            e.clientX - lastX;
 
-    lastX = e.clientX;
-    lastY = e.clientY;
+        offsetY +=
+            e.clientY - lastY;
 
-    draw();
-});
+        lastX = e.clientX;
+        lastY = e.clientY;
+
+        draw();
+    }
+);
 
 /* ================= MOUSE ZOOM ================= */
 
-canvas.addEventListener("wheel",(e)=>{
+canvas.addEventListener(
+    "wheel",
+    (e)=>{
 
-    e.preventDefault();
+        e.preventDefault();
 
-    const mouseX = e.offsetX;
-    const mouseY = e.offsetY;
+        const mouseX = e.offsetX;
+        const mouseY = e.offsetY;
 
-    const worldX =
-        (mouseX-offsetX)/scale;
+        const worldX =
+            (mouseX-offsetX)/scale;
 
-    const worldY =
-        (offsetY-mouseY)/scale;
+        const worldY =
+            (offsetY-mouseY)/scale;
 
-    const zoom =
-        e.deltaY < 0 ? 1.1 : 0.9;
+        const zoom =
+            e.deltaY < 0
+            ? 1.1
+            : 0.9;
 
-    scale *= zoom;
+        scale *= zoom;
 
-    scale =
-        Math.max(5,
-        Math.min(2000,scale));
+        scale =
+            Math.max(
+                5,
+                Math.min(2000,scale)
+            );
 
-    offsetX =
-        mouseX - worldX*scale;
+        offsetX =
+            mouseX - worldX*scale;
 
-    offsetY =
-        mouseY + worldY*scale;
+        offsetY =
+            mouseY + worldY*scale;
 
-    draw();
+        draw();
 
-},{passive:false});
+    },
+    {passive:false}
+);
 
 /* ================= TOUCH SUPPORT ================= */
 
@@ -768,152 +888,176 @@ function touchMid(t1,t2){
 
     return {
 
-        x:(t1.clientX+t2.clientX)/2,
+        x:
+            (t1.clientX+t2.clientX)/2,
 
-        y:(t1.clientY+t2.clientY)/2
+        y:
+            (t1.clientY+t2.clientY)/2
     };
 }
 
 /* TOUCH START */
 
-canvas.addEventListener("touchstart",(e)=>{
+canvas.addEventListener(
+    "touchstart",
+    (e)=>{
 
-    e.preventDefault();
+        e.preventDefault();
 
-    /* PAN */
+        /* PAN */
 
-    if(e.touches.length===1){
+        if(e.touches.length===1){
 
-        touchMode = "pan";
+            touchMode = "pan";
 
-        lastTouchX =
-            e.touches[0].clientX;
+            lastTouchX =
+                e.touches[0].clientX;
 
-        lastTouchY =
-            e.touches[0].clientY;
-    }
+            lastTouchY =
+                e.touches[0].clientY;
+        }
 
-    /* ZOOM */
+        /* ZOOM */
 
-    else if(e.touches.length===2){
+        else if(e.touches.length===2){
 
-        touchMode = "zoom";
+            touchMode = "zoom";
 
-        lastPinchDistance =
-            touchDistance(
-                e.touches[0],
-                e.touches[1]
-            );
-    }
+            lastPinchDistance =
+                touchDistance(
+                    e.touches[0],
+                    e.touches[1]
+                );
+        }
 
-},{passive:false});
+    },
+    {passive:false}
+);
 
 /* TOUCH MOVE */
 
-canvas.addEventListener("touchmove",(e)=>{
+canvas.addEventListener(
+    "touchmove",
+    (e)=>{
 
-    e.preventDefault();
+        e.preventDefault();
 
-    /* PAN */
+        /* PAN */
 
-    if(
-        touchMode==="pan" &&
-        e.touches.length===1
-    ){
+        if(
+            touchMode==="pan" &&
+            e.touches.length===1
+        ){
 
-        const touch =
-            e.touches[0];
+            const touch =
+                e.touches[0];
 
-        const dx =
-            touch.clientX-lastTouchX;
+            const dx =
+                touch.clientX -
+                lastTouchX;
 
-        const dy =
-            touch.clientY-lastTouchY;
+            const dy =
+                touch.clientY -
+                lastTouchY;
 
-        offsetX += dx;
-        offsetY += dy;
+            offsetX += dx;
+            offsetY += dy;
 
-        lastTouchX = touch.clientX;
-        lastTouchY = touch.clientY;
+            lastTouchX =
+                touch.clientX;
 
-        draw();
-    }
+            lastTouchY =
+                touch.clientY;
 
-    /* PINCH */
+            draw();
+        }
 
-    else if(
-        touchMode==="zoom" &&
-        e.touches.length===2
-    ){
+        /* PINCH */
 
-        const dist =
-            touchDistance(
-                e.touches[0],
-                e.touches[1]
-            );
+        else if(
+            touchMode==="zoom" &&
+            e.touches.length===2
+        ){
 
-        const mid =
-            touchMid(
-                e.touches[0],
-                e.touches[1]
-            );
+            const dist =
+                touchDistance(
+                    e.touches[0],
+                    e.touches[1]
+                );
 
-        const zoomFactor =
-            dist / lastPinchDistance;
+            const mid =
+                touchMid(
+                    e.touches[0],
+                    e.touches[1]
+                );
 
-        const worldX =
-            (mid.x-offsetX)/scale;
+            const zoomFactor =
+                dist /
+                lastPinchDistance;
 
-        const worldY =
-            (offsetY-mid.y)/scale;
+            const worldX =
+                (mid.x-offsetX)/scale;
 
-        scale *= zoomFactor;
+            const worldY =
+                (offsetY-mid.y)/scale;
 
-        scale =
-            Math.max(5,
-            Math.min(2000,scale));
+            scale *= zoomFactor;
 
-        offsetX =
-            mid.x - worldX*scale;
+            scale =
+                Math.max(
+                    5,
+                    Math.min(2000,scale)
+                );
 
-        offsetY =
-            mid.y + worldY*scale;
+            offsetX =
+                mid.x - worldX*scale;
 
-        lastPinchDistance = dist;
+            offsetY =
+                mid.y + worldY*scale;
 
-        draw();
-    }
+            lastPinchDistance = dist;
 
-},{passive:false});
+            draw();
+        }
+
+    },
+    {passive:false}
+);
 
 /* TOUCH END */
 
-canvas.addEventListener("touchend",(e)=>{
+canvas.addEventListener(
+    "touchend",
+    (e)=>{
 
-    e.preventDefault();
+        e.preventDefault();
 
-    if(e.touches.length===0){
+        if(e.touches.length===0){
 
-        touchMode = null;
-    }
+            touchMode = null;
+        }
 
-    else if(e.touches.length===1){
+        else if(e.touches.length===1){
 
-        touchMode = "pan";
+            touchMode = "pan";
 
-        lastTouchX =
-            e.touches[0].clientX;
+            lastTouchX =
+                e.touches[0].clientX;
 
-        lastTouchY =
-            e.touches[0].clientY;
-    }
+            lastTouchY =
+                e.touches[0].clientY;
+        }
 
-},{passive:false});
+    },
+    {passive:false}
+);
 
 /* ================= START ================= */
 
 resize();
+
 draw();
+
 </script>
 
 </body>
