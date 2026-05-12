@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Graphing Studio (Fixed Parametric)</title>
+<title>Graphing Studio (Full Fixed)</title>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
 
@@ -73,6 +73,7 @@ button{
     border-radius:10px;
     margin-top:8px;
     cursor:pointer;
+    user-select:none;
 }
 
 .small{
@@ -92,14 +93,19 @@ canvas{
 <div id="wrap">
 
 <div id="panel">
-    <div id="title">Graphing Studio FIX</div>
+
+    <div id="title">Graphing Studio</div>
 
     <div id="inputRow">
-        <input id="expr" placeholder="sin(x) OR x=t*cos(t), y=t*sin(t)" />
+        <input
+            id="expr"
+            placeholder="sin(x) OR x=t*cos(t), y=t*sin(t)"
+        />
         <button onclick="add()">+</button>
     </div>
 
     <div id="list"></div>
+
 </div>
 
 <canvas id="c"></canvas>
@@ -110,29 +116,52 @@ canvas{
 const canvas = document.getElementById("c");
 const ctx = canvas.getContext("2d");
 
+/* ================= SIZE ================= */
+
 let W,H;
+
 function resize(){
     W = canvas.width = window.innerWidth - 340;
     H = canvas.height = window.innerHeight;
+    draw();
 }
-window.addEventListener("resize",resize);
+
+window.addEventListener("resize", resize);
 resize();
 
-// view
-let scale = 60;
-let offsetX = W/2;
-let offsetY = H/2;
+/* ================= VIEW ================= */
 
-// graphs
+let scale = 60;
+let offsetX = W / 2;
+let offsetY = H / 2;
+
+/* ================= DATA ================= */
+
 let graphs = [];
 
-const colors = ["#4c7dff","#ff4c7d","#4cff9a","#ffb84c","#c44cff"];
+const colors = [
+    "#4c7dff",
+    "#ff4c7d",
+    "#4cff9a",
+    "#ffb84c",
+    "#c44cff",
+    "#00d4ff",
+    "#ff6666"
+];
 
-/* ---------------- PARAMETRIC PARSER FIX ---------------- */
+/* ================= HELPERS ================= */
+
+function normalize(str){
+    return str
+        .replace(/\n/g,",")
+        .replace(/\s/g,"");
+}
+
+/* ================= PARAMETRIC PARSER ================= */
 
 function parseParametric(input){
 
-    input = input.replace(/\s/g,'');
+    input = normalize(input);
 
     const parts = input.split(",");
 
@@ -140,12 +169,18 @@ function parseParametric(input){
     let yPart = null;
 
     for(const p of parts){
-        if(p.startsWith("x=")) xPart = p.slice(2);
-        if(p.startsWith("y=")) yPart = p.slice(2);
+
+        if(p.startsWith("x=")){
+            xPart = p.slice(2);
+        }
+
+        if(p.startsWith("y=")){
+            yPart = p.slice(2);
+        }
     }
 
     if(!xPart || !yPart){
-        throw new Error("Parametric must be x=..., y=...");
+        throw new Error("Invalid parametric");
     }
 
     return {
@@ -154,76 +189,128 @@ function parseParametric(input){
     };
 }
 
-/* ---------------- ADD FUNCTION ---------------- */
+/* ================= ADD GRAPH ================= */
 
 function add(){
-    let input = document.getElementById("expr").value.trim();
-    if(!input) return;
+
+    let rawInput =
+        document.getElementById("expr").value.trim();
+
+    if(!rawInput) return;
+
+    let input = normalize(rawInput);
 
     try{
 
-        // PARAMETRIC MODE
-        if(input.includes("x=") && input.includes("y=") && input.includes("t")){
+        /* PARAMETRIC */
 
-            const {xExpr, yExpr} = parseParametric(input);
+        if(
+            input.includes("x=") &&
+            input.includes("y=")
+        ){
+
+            const {xExpr, yExpr} =
+                parseParametric(input);
 
             graphs.push({
                 type:"parametric",
                 xExpr,
                 yExpr,
-                text:input,
+                text:rawInput,
                 visible:true,
-                color:colors[graphs.length % colors.length]
+                color:colors[
+                    graphs.length % colors.length
+                ]
             });
+        }
 
-        } 
-        // FUNCTION MODE
+        /* FUNCTION */
+
         else {
 
-            let expr = input.replace("y=","");
+            let expr = input;
+
+            if(expr.startsWith("y=")){
+                expr = expr.slice(2);
+            }
 
             graphs.push({
                 type:"function",
                 expr:math.compile(expr),
-                text:input,
+                text:rawInput,
                 visible:true,
-                color:colors[graphs.length % colors.length]
+                color:colors[
+                    graphs.length % colors.length
+                ]
             });
         }
 
         document.getElementById("expr").value="";
+
         render();
         draw();
 
-    } catch(e){
+    } catch(err){
+
+        console.error(err);
         alert("Invalid expression");
     }
 }
 
-/* ---------------- UI ---------------- */
+/* ENTER KEY */
+
+document
+.getElementById("expr")
+.addEventListener("keydown",(e)=>{
+    if(e.key==="Enter"){
+        add();
+    }
+});
+
+/* ================= UI ================= */
 
 function render(){
+
     const list = document.getElementById("list");
-    list.innerHTML="";
+
+    list.innerHTML = "";
 
     graphs.forEach((g,i)=>{
 
-        const div=document.createElement("div");
-        div.className="item";
-        div.innerHTML=`
-            <div>${g.text}</div>
-            <div class="small">${g.type}</div>
+        const div = document.createElement("div");
+
+        div.className = "item";
+
+        div.innerHTML = `
+            <div style="color:${g.color}">
+                ${g.text}
+            </div>
+
+            <div class="small">
+                ${g.type}
+            </div>
         `;
 
-        div.onclick=()=>{
-            g.visible=!g.visible;
-            div.style.opacity=g.visible?1:0.4;
+        /* toggle */
+
+        div.onclick = ()=>{
+
+            g.visible = !g.visible;
+
+            div.style.opacity =
+                g.visible ? 1 : 0.35;
+
             draw();
         };
 
-        div.oncontextmenu=(e)=>{
+        /* delete */
+
+        div.oncontextmenu = (e)=>{
+
             e.preventDefault();
+
             graphs.splice(i,1);
+
             render();
             draw();
         };
@@ -232,29 +319,45 @@ function render(){
     });
 }
 
-/* ---------------- DRAW GRID ---------------- */
+/* ================= GRID ================= */
 
 function grid(){
 
-    ctx.strokeStyle="#1a2030";
-    ctx.lineWidth=1;
+    ctx.strokeStyle = "#1a2030";
+    ctx.lineWidth = 1;
 
-    for(let x=offsetX%scale;x<W;x+=scale){
+    /* vertical */
+
+    for(
+        let x = offsetX % scale;
+        x < W;
+        x += scale
+    ){
+
         ctx.beginPath();
         ctx.moveTo(x,0);
         ctx.lineTo(x,H);
         ctx.stroke();
     }
 
-    for(let y=offsetY%scale;y<H;y+=scale){
+    /* horizontal */
+
+    for(
+        let y = offsetY % scale;
+        y < H;
+        y += scale
+    ){
+
         ctx.beginPath();
         ctx.moveTo(0,y);
         ctx.lineTo(W,y);
         ctx.stroke();
     }
 
-    ctx.strokeStyle="#444";
-    ctx.lineWidth=2;
+    /* axes */
+
+    ctx.strokeStyle = "#555";
+    ctx.lineWidth = 2;
 
     ctx.beginPath();
     ctx.moveTo(0,offsetY);
@@ -267,111 +370,190 @@ function grid(){
     ctx.stroke();
 }
 
-/* ---------------- FUNCTION GRAPH ---------------- */
+/* ================= FUNCTION DRAW ================= */
 
-function drawFunc(g){
-    ctx.strokeStyle=g.color;
-    ctx.lineWidth=2;
+function drawFunction(g){
+
+    ctx.strokeStyle = g.color;
+    ctx.lineWidth = 2;
+
     ctx.beginPath();
 
-    let first=true;
+    let first = true;
 
-    for(let px=0;px<W;px++){
+    for(let px=0; px<W; px++){
 
-        let x=(px-offsetX)/scale;
+        let x =
+            (px - offsetX) / scale;
+
         let y;
 
         try{
-            y=g.expr.evaluate({x});
+            y = g.expr.evaluate({x});
+
+            if(!isFinite(y)) continue;
+
         } catch{
             continue;
         }
 
-        let py=offsetY-y*scale;
+        let py =
+            offsetY - y * scale;
 
         if(first){
+
             ctx.moveTo(px,py);
-            first=false;
-        } else ctx.lineTo(px,py);
+
+            first = false;
+
+        } else {
+
+            ctx.lineTo(px,py);
+        }
     }
 
     ctx.stroke();
 }
 
-/* ---------------- PARAMETRIC GRAPH (FIXED) ---------------- */
+/* ================= PARAMETRIC DRAW ================= */
 
-function drawParam(g){
-    ctx.strokeStyle=g.color;
-    ctx.lineWidth=2;
+function drawParametric(g){
+
+    ctx.strokeStyle = g.color;
+    ctx.lineWidth = 2;
+
     ctx.beginPath();
 
-    let first=true;
+    let first = true;
 
-    for(let t=-50;t<50;t+=0.05){
+    for(let t=-100; t<=100; t+=0.02){
 
-        let x=g.xExpr.evaluate({t});
-        let y=g.yExpr.evaluate({t});
+        let x,y;
 
-        let px=offsetX+x*scale;
-        let py=offsetY-y*scale;
+        try{
+
+            x = g.xExpr.evaluate({t});
+            y = g.yExpr.evaluate({t});
+
+            if(
+                !isFinite(x) ||
+                !isFinite(y)
+            ){
+                continue;
+            }
+
+        } catch{
+            continue;
+        }
+
+        let px =
+            offsetX + x * scale;
+
+        let py =
+            offsetY - y * scale;
 
         if(first){
+
             ctx.moveTo(px,py);
-            first=false;
-        } else ctx.lineTo(px,py);
+
+            first = false;
+
+        } else {
+
+            ctx.lineTo(px,py);
+        }
     }
 
     ctx.stroke();
 }
 
-/* ---------------- MAIN DRAW ---------------- */
+/* ================= MAIN DRAW ================= */
 
 function draw(){
+
     ctx.clearRect(0,0,W,H);
 
     grid();
 
     graphs.forEach(g=>{
+
         if(!g.visible) return;
 
-        if(g.type==="function") drawFunc(g);
-        if(g.type==="parametric") drawParam(g);
+        if(g.type==="function"){
+            drawFunction(g);
+        }
+
+        if(g.type==="parametric"){
+            drawParametric(g);
+        }
     });
 }
 
-draw();
-
-/* ---------------- ZOOM ---------------- */
+/* ================= ZOOM ================= */
 
 canvas.addEventListener("wheel",(e)=>{
+
     e.preventDefault();
-    scale*=e.deltaY<0?1.1:0.9;
+
+    const mouseX = e.offsetX;
+    const mouseY = e.offsetY;
+
+    const worldX =
+        (mouseX - offsetX) / scale;
+
+    const worldY =
+        (offsetY - mouseY) / scale;
+
+    const zoom =
+        e.deltaY < 0 ? 1.1 : 0.9;
+
+    scale *= zoom;
+
+    offsetX =
+        mouseX - worldX * scale;
+
+    offsetY =
+        mouseY + worldY * scale;
+
     draw();
 });
 
-/* ---------------- PAN ---------------- */
+/* ================= PAN ================= */
 
-let drag=false,lx,ly;
+let dragging = false;
+
+let lastX = 0;
+let lastY = 0;
 
 canvas.addEventListener("mousedown",(e)=>{
-    drag=true;
-    lx=e.clientX;
-    ly=e.clientY;
+
+    dragging = true;
+
+    lastX = e.clientX;
+    lastY = e.clientY;
 });
 
-canvas.addEventListener("mouseup",()=>drag=false);
+window.addEventListener("mouseup",()=>{
 
-canvas.addEventListener("mousemove",(e)=>{
-    if(!drag)return;
+    dragging = false;
+});
 
-    offsetX+=e.clientX-lx;
-    offsetY+=e.clientY-ly;
+window.addEventListener("mousemove",(e)=>{
 
-    lx=e.clientX;
-    ly=e.clientY;
+    if(!dragging) return;
+
+    offsetX += e.clientX - lastX;
+    offsetY += e.clientY - lastY;
+
+    lastX = e.clientX;
+    lastY = e.clientY;
 
     draw();
 });
+
+/* ================= START ================= */
+
+draw();
 </script>
 
 </body>
