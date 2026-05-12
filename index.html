@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Graphing Studio (Full Fixed)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>Mobile Graphing Studio</title>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
 
@@ -16,92 +16,172 @@
     --accent:#4c7dff;
 }
 
-body{
+*{
+    box-sizing:border-box;
+    -webkit-tap-highlight-color:transparent;
+}
+
+html,body{
     margin:0;
-    font-family:system-ui;
+    width:100%;
+    height:100%;
+    overflow:hidden;
     background:var(--bg);
     color:var(--text);
-    overflow:hidden;
+    font-family:system-ui;
 }
 
 #wrap{
     display:flex;
-    height:100vh;
+    width:100%;
+    height:100%;
 }
 
+/* ================= SIDEBAR ================= */
+
 #panel{
-    width:340px;
+    width:320px;
+    min-width:320px;
     background:var(--panel);
-    padding:12px;
-    box-sizing:border-box;
     border-right:1px solid #222;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+}
+
+#top{
+    padding:12px;
 }
 
 #title{
-    font-size:18px;
-    margin-bottom:10px;
+    font-size:20px;
+    font-weight:bold;
+    margin-bottom:12px;
 }
 
 #inputRow{
     display:flex;
-    gap:6px;
+    gap:8px;
 }
 
 input{
     flex:1;
-    padding:10px;
-    border-radius:8px;
-    border:none;
-    outline:none;
     background:var(--panel2);
     color:white;
+    border:none;
+    outline:none;
+    padding:12px;
+    border-radius:10px;
+    font-size:16px;
 }
 
 button{
-    padding:10px;
-    border-radius:8px;
     border:none;
     background:var(--accent);
     color:white;
-    cursor:pointer;
+    border-radius:10px;
+    padding:12px 16px;
     font-weight:bold;
+    cursor:pointer;
+    font-size:16px;
+}
+
+#list{
+    flex:1;
+    overflow:auto;
+    padding:12px;
 }
 
 .item{
     background:var(--panel2);
-    padding:10px;
-    border-radius:10px;
-    margin-top:8px;
-    cursor:pointer;
+    padding:12px;
+    border-radius:12px;
+    margin-bottom:10px;
     user-select:none;
 }
 
-.small{
-    font-size:12px;
-    opacity:0.7;
+.itemText{
+    font-size:15px;
+    word-break:break-word;
 }
+
+.small{
+    margin-top:4px;
+    opacity:0.7;
+    font-size:12px;
+}
+
+/* ================= CANVAS ================= */
 
 canvas{
     flex:1;
     display:block;
+    touch-action:none;
+    background:#0b0d12;
+}
+
+/* ================= MOBILE ================= */
+
+#togglePanel{
+    display:none;
+    position:absolute;
+    top:10px;
+    left:10px;
+    z-index:100;
+    background:rgba(0,0,0,0.6);
+    backdrop-filter:blur(10px);
+}
+
+@media (max-width:900px){
+
+    #panel{
+        position:absolute;
+        left:0;
+        top:0;
+        bottom:0;
+        z-index:99;
+        transform:translateX(-100%);
+        transition:0.25s;
+    }
+
+    #panel.open{
+        transform:translateX(0);
+    }
+
+    #togglePanel{
+        display:block;
+    }
 }
 </style>
 </head>
 
 <body>
 
+<button id="togglePanel">☰</button>
+
 <div id="wrap">
 
 <div id="panel">
 
-    <div id="title">Graphing Studio</div>
+    <div id="top">
 
-    <div id="inputRow">
-        <input
-            id="expr"
-            placeholder="sin(x) OR x=t*cos(t), y=t*sin(t)"
-        />
-        <button onclick="add()">+</button>
+        <div id="title">
+            Graphing Studio
+        </div>
+
+        <div id="inputRow">
+
+            <input
+                id="expr"
+                placeholder="sin(x) OR x=t*cos(t), y=t*sin(t)"
+            />
+
+            <button onclick="addGraph()">
+                +
+            </button>
+
+        </div>
+
     </div>
 
     <div id="list"></div>
@@ -116,28 +196,51 @@ canvas{
 const canvas = document.getElementById("c");
 const ctx = canvas.getContext("2d");
 
+const panel = document.getElementById("panel");
+
+/* ================= MOBILE PANEL ================= */
+
+document
+.getElementById("togglePanel")
+.onclick = ()=>{
+
+    panel.classList.toggle("open");
+};
+
 /* ================= SIZE ================= */
 
 let W,H;
 
 function resize(){
-    W = canvas.width = window.innerWidth - 340;
-    H = canvas.height = window.innerHeight;
+
+    W = canvas.width = canvas.offsetWidth;
+    H = canvas.height = canvas.offsetHeight;
+
     draw();
 }
 
-window.addEventListener("resize", resize);
-resize();
+window.addEventListener("resize",resize);
+
+setTimeout(resize,50);
 
 /* ================= VIEW ================= */
 
 let scale = 60;
-let offsetX = W / 2;
-let offsetY = H / 2;
+
+let offsetX = 0;
+let offsetY = 0;
+
+function centerView(){
+
+    offsetX = W/2;
+    offsetY = H/2;
+}
+
+centerView();
 
 /* ================= DATA ================= */
 
-let graphs = [];
+const graphs = [];
 
 const colors = [
     "#4c7dff",
@@ -152,12 +255,13 @@ const colors = [
 /* ================= HELPERS ================= */
 
 function normalize(str){
+
     return str
         .replace(/\n/g,",")
         .replace(/\s/g,"");
 }
 
-/* ================= PARAMETRIC PARSER ================= */
+/* ================= PARAMETRIC ================= */
 
 function parseParametric(input){
 
@@ -180,25 +284,28 @@ function parseParametric(input){
     }
 
     if(!xPart || !yPart){
-        throw new Error("Invalid parametric");
+
+        throw new Error("Bad parametric");
     }
 
     return {
-        xExpr: math.compile(xPart),
-        yExpr: math.compile(yPart)
+        xExpr:math.compile(xPart),
+        yExpr:math.compile(yPart)
     };
 }
 
 /* ================= ADD GRAPH ================= */
 
-function add(){
+function addGraph(){
 
-    let rawInput =
-        document.getElementById("expr").value.trim();
+    let raw =
+        document.getElementById("expr")
+        .value
+        .trim();
 
-    if(!rawInput) return;
+    if(!raw) return;
 
-    let input = normalize(rawInput);
+    let input = normalize(raw);
 
     try{
 
@@ -209,22 +316,29 @@ function add(){
             input.includes("y=")
         ){
 
-            const {xExpr, yExpr} =
+            const p =
                 parseParametric(input);
 
             graphs.push({
+
                 type:"parametric",
-                xExpr,
-                yExpr,
-                text:rawInput,
+
+                xExpr:p.xExpr,
+                yExpr:p.yExpr,
+
+                text:raw,
+
                 visible:true,
-                color:colors[
-                    graphs.length % colors.length
-                ]
+
+                color:
+                    colors[
+                        graphs.length %
+                        colors.length
+                    ]
             });
         }
 
-        /* FUNCTION */
+        /* NORMAL FUNCTION */
 
         else {
 
@@ -235,54 +349,72 @@ function add(){
             }
 
             graphs.push({
+
                 type:"function",
-                expr:math.compile(expr),
-                text:rawInput,
+
+                expr:
+                    math.compile(expr),
+
+                text:raw,
+
                 visible:true,
-                color:colors[
-                    graphs.length % colors.length
-                ]
+
+                color:
+                    colors[
+                        graphs.length %
+                        colors.length
+                    ]
             });
         }
 
-        document.getElementById("expr").value="";
+        document
+        .getElementById("expr")
+        .value = "";
 
-        render();
+        renderList();
         draw();
 
     } catch(err){
 
         console.error(err);
+
         alert("Invalid expression");
     }
 }
 
-/* ENTER KEY */
+/* ENTER */
 
 document
 .getElementById("expr")
 .addEventListener("keydown",(e)=>{
+
     if(e.key==="Enter"){
-        add();
+        addGraph();
     }
 });
 
-/* ================= UI ================= */
+/* ================= LIST ================= */
 
-function render(){
+function renderList(){
 
-    const list = document.getElementById("list");
+    const list =
+        document.getElementById("list");
 
     list.innerHTML = "";
 
     graphs.forEach((g,i)=>{
 
-        const div = document.createElement("div");
+        const div =
+            document.createElement("div");
 
         div.className = "item";
 
         div.innerHTML = `
-            <div style="color:${g.color}">
+
+            <div
+                class="itemText"
+                style="color:${g.color}"
+            >
                 ${g.text}
             </div>
 
@@ -291,7 +423,7 @@ function render(){
             </div>
         `;
 
-        /* toggle */
+        /* TOGGLE */
 
         div.onclick = ()=>{
 
@@ -303,7 +435,7 @@ function render(){
             draw();
         };
 
-        /* delete */
+        /* DELETE */
 
         div.oncontextmenu = (e)=>{
 
@@ -311,9 +443,32 @@ function render(){
 
             graphs.splice(i,1);
 
-            render();
+            renderList();
+
             draw();
         };
+
+        /* LONG PRESS DELETE MOBILE */
+
+        let hold;
+
+        div.addEventListener("touchstart",()=>{
+
+            hold = setTimeout(()=>{
+
+                graphs.splice(i,1);
+
+                renderList();
+
+                draw();
+
+            },700);
+        });
+
+        div.addEventListener("touchend",()=>{
+
+            clearTimeout(hold);
+        });
 
         list.appendChild(div);
     });
@@ -321,12 +476,10 @@ function render(){
 
 /* ================= GRID ================= */
 
-function grid(){
+function drawGrid(){
 
     ctx.strokeStyle = "#1a2030";
     ctx.lineWidth = 1;
-
-    /* vertical */
 
     for(
         let x = offsetX % scale;
@@ -335,12 +488,12 @@ function grid(){
     ){
 
         ctx.beginPath();
+
         ctx.moveTo(x,0);
         ctx.lineTo(x,H);
+
         ctx.stroke();
     }
-
-    /* horizontal */
 
     for(
         let y = offsetY % scale;
@@ -349,28 +502,34 @@ function grid(){
     ){
 
         ctx.beginPath();
+
         ctx.moveTo(0,y);
         ctx.lineTo(W,y);
+
         ctx.stroke();
     }
 
-    /* axes */
+    /* AXES */
 
     ctx.strokeStyle = "#555";
     ctx.lineWidth = 2;
 
     ctx.beginPath();
+
     ctx.moveTo(0,offsetY);
     ctx.lineTo(W,offsetY);
+
     ctx.stroke();
 
     ctx.beginPath();
+
     ctx.moveTo(offsetX,0);
     ctx.lineTo(offsetX,H);
+
     ctx.stroke();
 }
 
-/* ================= FUNCTION DRAW ================= */
+/* ================= FUNCTION ================= */
 
 function drawFunction(g){
 
@@ -384,21 +543,25 @@ function drawFunction(g){
     for(let px=0; px<W; px++){
 
         let x =
-            (px - offsetX) / scale;
+            (px-offsetX)/scale;
 
         let y;
 
         try{
-            y = g.expr.evaluate({x});
 
-            if(!isFinite(y)) continue;
+            y =
+                g.expr.evaluate({x});
+
+            if(!isFinite(y))
+                continue;
 
         } catch{
+
             continue;
         }
 
         let py =
-            offsetY - y * scale;
+            offsetY - y*scale;
 
         if(first){
 
@@ -415,7 +578,7 @@ function drawFunction(g){
     ctx.stroke();
 }
 
-/* ================= PARAMETRIC DRAW ================= */
+/* ================= PARAMETRIC ================= */
 
 function drawParametric(g){
 
@@ -432,8 +595,11 @@ function drawParametric(g){
 
         try{
 
-            x = g.xExpr.evaluate({t});
-            y = g.yExpr.evaluate({t});
+            x =
+                g.xExpr.evaluate({t});
+
+            y =
+                g.yExpr.evaluate({t});
 
             if(
                 !isFinite(x) ||
@@ -443,14 +609,15 @@ function drawParametric(g){
             }
 
         } catch{
+
             continue;
         }
 
         let px =
-            offsetX + x * scale;
+            offsetX + x*scale;
 
         let py =
-            offsetY - y * scale;
+            offsetY - y*scale;
 
         if(first){
 
@@ -467,13 +634,13 @@ function drawParametric(g){
     ctx.stroke();
 }
 
-/* ================= MAIN DRAW ================= */
+/* ================= DRAW ================= */
 
 function draw(){
 
     ctx.clearRect(0,0,W,H);
 
-    grid();
+    drawGrid();
 
     graphs.forEach(g=>{
 
@@ -489,36 +656,7 @@ function draw(){
     });
 }
 
-/* ================= ZOOM ================= */
-
-canvas.addEventListener("wheel",(e)=>{
-
-    e.preventDefault();
-
-    const mouseX = e.offsetX;
-    const mouseY = e.offsetY;
-
-    const worldX =
-        (mouseX - offsetX) / scale;
-
-    const worldY =
-        (offsetY - mouseY) / scale;
-
-    const zoom =
-        e.deltaY < 0 ? 1.1 : 0.9;
-
-    scale *= zoom;
-
-    offsetX =
-        mouseX - worldX * scale;
-
-    offsetY =
-        mouseY + worldY * scale;
-
-    draw();
-});
-
-/* ================= PAN ================= */
+/* ================= MOUSE PAN ================= */
 
 let dragging = false;
 
@@ -551,8 +689,209 @@ window.addEventListener("mousemove",(e)=>{
     draw();
 });
 
+/* ================= MOUSE ZOOM ================= */
+
+canvas.addEventListener("wheel",(e)=>{
+
+    e.preventDefault();
+
+    const mouseX = e.offsetX;
+    const mouseY = e.offsetY;
+
+    const worldX =
+        (mouseX-offsetX)/scale;
+
+    const worldY =
+        (offsetY-mouseY)/scale;
+
+    const zoom =
+        e.deltaY < 0 ? 1.1 : 0.9;
+
+    scale *= zoom;
+
+    scale =
+        Math.max(5,
+        Math.min(2000,scale));
+
+    offsetX =
+        mouseX - worldX*scale;
+
+    offsetY =
+        mouseY + worldY*scale;
+
+    draw();
+
+},{passive:false});
+
+/* ================= TOUCH SUPPORT ================= */
+
+let touchMode = null;
+
+let lastTouchX = 0;
+let lastTouchY = 0;
+
+let lastPinchDistance = 0;
+
+function touchDistance(t1,t2){
+
+    const dx =
+        t2.clientX - t1.clientX;
+
+    const dy =
+        t2.clientY - t1.clientY;
+
+    return Math.hypot(dx,dy);
+}
+
+function touchMid(t1,t2){
+
+    return {
+
+        x:(t1.clientX+t2.clientX)/2,
+
+        y:(t1.clientY+t2.clientY)/2
+    };
+}
+
+/* TOUCH START */
+
+canvas.addEventListener("touchstart",(e)=>{
+
+    e.preventDefault();
+
+    /* PAN */
+
+    if(e.touches.length===1){
+
+        touchMode = "pan";
+
+        lastTouchX =
+            e.touches[0].clientX;
+
+        lastTouchY =
+            e.touches[0].clientY;
+    }
+
+    /* ZOOM */
+
+    else if(e.touches.length===2){
+
+        touchMode = "zoom";
+
+        lastPinchDistance =
+            touchDistance(
+                e.touches[0],
+                e.touches[1]
+            );
+    }
+
+},{passive:false});
+
+/* TOUCH MOVE */
+
+canvas.addEventListener("touchmove",(e)=>{
+
+    e.preventDefault();
+
+    /* PAN */
+
+    if(
+        touchMode==="pan" &&
+        e.touches.length===1
+    ){
+
+        const touch =
+            e.touches[0];
+
+        const dx =
+            touch.clientX-lastTouchX;
+
+        const dy =
+            touch.clientY-lastTouchY;
+
+        offsetX += dx;
+        offsetY += dy;
+
+        lastTouchX = touch.clientX;
+        lastTouchY = touch.clientY;
+
+        draw();
+    }
+
+    /* PINCH */
+
+    else if(
+        touchMode==="zoom" &&
+        e.touches.length===2
+    ){
+
+        const dist =
+            touchDistance(
+                e.touches[0],
+                e.touches[1]
+            );
+
+        const mid =
+            touchMid(
+                e.touches[0],
+                e.touches[1]
+            );
+
+        const zoomFactor =
+            dist / lastPinchDistance;
+
+        const worldX =
+            (mid.x-offsetX)/scale;
+
+        const worldY =
+            (offsetY-mid.y)/scale;
+
+        scale *= zoomFactor;
+
+        scale =
+            Math.max(5,
+            Math.min(2000,scale));
+
+        offsetX =
+            mid.x - worldX*scale;
+
+        offsetY =
+            mid.y + worldY*scale;
+
+        lastPinchDistance = dist;
+
+        draw();
+    }
+
+},{passive:false});
+
+/* TOUCH END */
+
+canvas.addEventListener("touchend",(e)=>{
+
+    e.preventDefault();
+
+    if(e.touches.length===0){
+
+        touchMode = null;
+    }
+
+    else if(e.touches.length===1){
+
+        touchMode = "pan";
+
+        lastTouchX =
+            e.touches[0].clientX;
+
+        lastTouchY =
+            e.touches[0].clientY;
+    }
+
+},{passive:false});
+
 /* ================= START ================= */
 
+resize();
 draw();
 </script>
 
